@@ -11,6 +11,9 @@ $link = mysqli_connect("localhost","root","root");
 mysqli_query($link , "set names utf8");
 //选择一个数据库作为默认数据库
 mysqli_select_db($link,'test');
+//数据库连接
+
+
 $query="SELECT id FROM `position` WHERE `center_lng` = $lng AND `center_lat` = $lat";
 $result= mysqli_query($link,$query);
 $result=$result->fetch_assoc();

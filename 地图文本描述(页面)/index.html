@@ -173,6 +173,15 @@
       var lng = cen.lng.toFixed(5);
       var lat = cen.lat.toFixed(5);
       var bounds=map.getBounds();
+      var cnt=0;
+      for (var i=0;i<description.value.length;i++)
+      {
+          cnt=Math.max(cnt,(description.value.split(description.value[i])).length-1);
+          if(cnt>5) {
+              alert("添加失败");
+              return;
+          }
+      }
       var data = {
           "lng": lng,
           "lat": lat,
@@ -201,7 +210,7 @@
 
   }
 
-  function getJSON()
+      function getJSON()
   {
       var cen = map.getCenter();
       var lng = cen.lng.toFixed(5);

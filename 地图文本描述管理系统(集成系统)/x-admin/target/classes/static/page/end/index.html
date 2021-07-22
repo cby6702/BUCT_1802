@@ -64,17 +64,19 @@
 
     <div style="height: 1px; margin: 10px 0; background-color: white"></div>
     <el-input v-model="input" style="width: 40%;" placeholder="请输入对该地点的描述"
-              @keyup.enter.native="submit" minlength="1" type="textarea"></el-input>
+              minlength="1" type="textarea"></el-input>
     <el-button @click="submit" type="primary"  style="margin: 10px 0px">提交</el-button>
+    <el-input v-model="pid_str" style="width: 20%;" suffix-icon="el-icon-search"
+              @keyup.enter.native="locate"></el-input>
     <el-popover
             placement="right"
-            width="400"
+            width="350"
             trigger="click">
         <el-table :data="descriptionData">
             <el-table-column width="80" property="uid" label="用户id"></el-table-column>
-            <el-table-column width="200" property="name" label="描述"></el-table-column>
+            <el-table-column width="250" property="name" label="描述"></el-table-column>
         </el-table>
-        <el-button slot="reference" @click="loadDescription()" style="margin: 10px 160px">
+        <el-button slot="reference" @click="loadDescription()" style="margin: 10px 30px">
             查看该地点已有描述
         </el-button>
     </el-popover>
@@ -97,12 +99,36 @@
 
     var map = new BMapGL.Map('container', {
         minZoom:18,
-        maxZoom:18
+        maxZoom:18,
+        enableMapClick:false
     });
     var precision = 5;
     map.centerAndZoom(new BMapGL.Point(116.2, 39.8), 18)
     map.enableScrollWheelZoom(false)
     map.disableDragging();
+    var scaleCtrl = new BMapGL.ScaleControl();  // 添加比例尺控件
+    map.addControl(scaleCtrl);
+    var zoomCtrl = new BMapGL.ZoomControl();  // 添加比例尺控件
+    map.addControl(zoomCtrl);
+    // var myDis = new BMapGLLib.DistanceTool(map);
+    // // 监听测距过程中的鼠标事件
+    // myDis.addEventListener('drawend', function(e) {
+    //     console.log("drawend");
+    //     console.log(e.points);
+    //     console.log(e.overlays);
+    //     console.log(e.distance);
+    // });
+    // myDis.addEventListener("addpoint", function(e) {
+    //     console.log("addpoint");
+    //     console.log(e.point);
+    //     console.log(e.pixel);
+    //     console.log(e.index);
+    //     console.log(e.distance);
+    // });
+    // myDis.addEventListener("removepolyline", function(e) {
+    //     console.log("removepolyline");
+    //     console.log(e);
+    // });
     function setNewCenter(){
         var lng = 116.2 + Math.floor(Math.random() * 15) * 0.02;
         var lat = 39.8 + Math.floor(Math.random() * 10) * 0.02;
@@ -118,6 +144,7 @@
         el: "#wrapper",
         data: {
             pid: 0,
+            pid_str: '',
             lng: 0,
             lat: 0,
             options: [],
@@ -172,14 +199,16 @@
                 location.href = "/page/end/login.html";
             },
             loadDescription() {
-                var cen = map.getCenter();
+                var cen = map.getCenter(); // 获取地图中心点
+                // 在position中查找中心点
                 $.get("/api/position/" + "/center?pageNum=" + this.pageNum + "&pageSize=" + this.pageSize
                     + "&lng=" + cen.lng.toFixed(precision) + "&lat=" + cen.lat.toFixed(precision)).then(res => {
-                    if(res.data.total==0){
+                    if(res.data.total==0){// 若未找到, 则该地点没有描述
                         this.descriptionData = [];
                         this.total = 0;
                     }
-                    else{
+                    else{// 若找到, 则获取该地点的id, 用这个id作为pid去查description表, 将对这个地点的
+                        // 描述存入this.descriptionData中;
                         this.pid = res.data.records[0].id;
                         $.get("/api/description/" + "/page/pid?pageNum=" + this.pageNum
                             + "&pageSize=" + this.pageSize + "&pid=" + this.pid).then(res => {
@@ -240,7 +269,7 @@
                 }).then(res => {
                     if (res.code === '0') {
                         this.$message({
-                            message: "评论保存成功",
+                            message: "描述保存成功",
                             type: "success"
                         });
                     } else {
@@ -275,7 +304,8 @@
                     }
                 })
             },
-            submit(){ // 点击提交评论的按钮后要进行的操作;
+            submit(){ // 点击提交描述的按钮后要进行的操作;
+                // 获取中心点坐标, 西南角坐标, 东北角坐标等信息;
                 var cen = map.getCenter();
                 this.lng = cen.lng.toFixed(precision);
                 this.lat = cen.lat.toFixed(precision);
@@ -283,30 +313,62 @@
                 var sw_lat = map.getBounds().sw.lat.toFixed(precision);
                 var ne_lng = map.getBounds().ne.lng.toFixed(precision);
                 var ne_lat = map.getBounds().ne.lat.toFixed(precision);
+                // 调用PositionController提供的功能, 查找position表中是否已有当前地点;
                 $.get("/api/position/" + "/center?pageNum=" + this.pageNum + "&pageSize=" + this.pageSize
                     + "&lng=" + this.lng + "&lat=" + this.lat).then(res => {
-                    if(res.data.total==0){ // 如果没找到
+                    if(res.data.total==0){ // 如果没找到当前地点, 则新增到position表中;
                         this.entity = {centerLng:this.lng, centerLat:this.lat,
                             swLng:sw_lng, swLat:sw_lat, neLng:ne_lng, neLat:ne_lat};
                         this.savePosition();
-                        this.submitDescription();
+                        this.submitDescription();// 大概率第二次成功, 故提交两次;
                         this.submitDescription();
                     }
-                    else{
+                    else{ // 如果找到了的话, 就显示"该地点已存在"的提示信息
                         this.$message({
                             message: "该地点已存在",
                             type: "success"
                         })
-                        this.submitDescription();
+                        this.submitDescription();   // 大概率第一次成功, 故提交一次;
                     }
                 })
             },
-            submitDescription() {
+            submitDescription() {// 调用PositionController提供的功能, 查找刚刚添加的地点的id;
+                // 对用户提交的描述进行预筛查:
+                var cnt=0;
+                for (var i=0;i<this.input.length;i++)
+                {
+                    cnt=Math.max(cnt,(this.input.split(this.input[i])).length-1);
+                    if(cnt>5) {
+                        this.$message({
+                            message: "描述中有超过4个字的重复字符, 无法添加",
+                            type: "error"
+                        })
+                        return;
+                    }
+                }
                 $.get("/api/position/" + "/center?pageNum=" + this.pageNum + "&pageSize=" + this.pageSize
                     + "&lng=" + this.lng + "&lat=" + this.lat).then(res => {
-                    this.pid = res.data.records[0].id;
-                    this.entity = {uid:this.user.id, pid:this.pid, name:this.input};
-                    this.saveDescription();
+                    if(res.data.total==1){
+                        this.pid = res.data.records[0].id;
+                        this.entity = {uid:this.user.id, pid:this.pid, name:this.input};
+                        this.saveDescription();
+                    }
+                })
+            },
+            locate() {
+                $.get("/api/position/" + "/idstr?id_str=" + this.pid_str).then(res => {
+                    if(res.data.total==1){// 如果找到的话
+                        var lng = res.data.records[0].centerLng;
+                        var lat = res.data.records[0].centerLat;
+                        var point = new BMapGL.Point(lng, lat);
+                        map.setCenter(point); // 设置地图中心点
+                    }
+                    else{
+                        this.$message({
+                            message: "数据库中无该id地点",
+                            type: "error"
+                        })
+                    }
                 })
             }
         }

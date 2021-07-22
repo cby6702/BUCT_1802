@@ -66,6 +66,7 @@ public class PositionController {
         return Result.success(positionService.list());
     }
 
+    // 分页查找
     @GetMapping("/page")
     public Result<?> findPage(@RequestParam(required = false, defaultValue = "") String name,
                               @RequestParam(required = false, defaultValue = "1") Integer pageNum,
@@ -77,6 +78,7 @@ public class PositionController {
         return Result.success(positionService.page(new Page<>(pageNum, pageSize), query));
     }
 
+    // 通过中心点分页查找
     @GetMapping("/center")
     public Result<?> findPageByCenter(@RequestParam Double lng, @RequestParam Double lat,
                                       @RequestParam(required = false, defaultValue = "1") Integer pageNum,
@@ -84,6 +86,17 @@ public class PositionController {
         LambdaQueryWrapper<Position> query = Wrappers.<Position>lambdaQuery().orderByDesc(Position::getId);
         query.eq(Position::getCenterLng, lng);
         query.eq(Position::getCenterLat, lat);
+        return Result.success(positionService.page(new Page<>(pageNum, pageSize), query));
+    }
+
+    // 通过地点的id的字符串来分页查找地点
+    @GetMapping("/idstr")
+    public Result<?> findPageByCenter(@RequestParam(required = false, defaultValue = "") String id_str,
+                                      @RequestParam(required = false, defaultValue = "1") Integer pageNum,
+                                      @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
+        LambdaQueryWrapper<Position> query = Wrappers.<Position>lambdaQuery().orderByDesc(Position::getId);
+        int pid = Integer.parseInt(id_str);
+        query.eq(Position::getId, pid);
         return Result.success(positionService.page(new Page<>(pageNum, pageSize), query));
     }
 

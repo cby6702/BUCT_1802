@@ -68,6 +68,7 @@ public class DescriptionController {
         return Result.success(descriptionService.list());
     }
 
+    // 分页查找
     @GetMapping("/page")
     public Result<?> findPageByName(@RequestParam(required = false, defaultValue = "") String name,
                                     @RequestParam(required = false, defaultValue = "1") Integer pageNum,
@@ -79,6 +80,7 @@ public class DescriptionController {
         return Result.success(descriptionService.page(new Page<>(pageNum, pageSize), query));
     }
 
+    // 通过pid分页查找
     @GetMapping("/page/pid")
     public Result<?> findPageByPid(@RequestParam Long pid,
                               @RequestParam(required = false, defaultValue = "1") Integer pageNum,
@@ -88,6 +90,7 @@ public class DescriptionController {
         return Result.success(descriptionService.page(new Page<>(pageNum, pageSize), query));
     }
 
+    // 通过uid分页查找
     @GetMapping("/page/uid")
     public Result<?> findPageByUid(@RequestParam Long uid,
                                    @RequestParam(required = false, defaultValue = "1") Integer pageNum,
